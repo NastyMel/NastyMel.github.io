@@ -127,8 +127,8 @@
       this.clicked = false;
     }
     draw() {
-      // Если игра окончена, подсвечиваем оставшиеся невыбранные числа Фибоначчи
-      if (game && game.gameEnded && this.isFibo && !this.clicked) {
+      // Если игра закончена (или уровень завершён), подсвечиваем оставшиеся невыбранные числа Фибоначчи
+      if (game && (game.gameEnded || game.levelTransitionActive) && this.isFibo && !this.clicked) {
         stroke(255, 255, 0); // желтая рамка
         strokeWeight(3);
       } else {
@@ -142,7 +142,6 @@
         fill(255);
       }
       rect(this.x, this.y, this.w, this.h, 5);
-      
       fill(50);
       noStroke();
       textAlign(CENTER, CENTER);
@@ -237,7 +236,6 @@
     updateButtons() {
       this.pauseButton.html(game.paused ? "Возобновить" : "Пауза");
       if (game.gameStarted) {
-        // Если игра уже началась, скрываем кнопку "Начать игру"
         this.startButton.hide();
       } else {
         this.startButton.show();
@@ -247,14 +245,16 @@
       if (!game.gameStarted) {
         this.status.html("Игра не запущена");
       } else if (game.gameEnded) {
-        this.status.html(`Поздравляем!<br>Ваш результат: ${game.points} очков`);
+        this.status.html(`Игра окончена!<br>Ваш результат: ${game.points} очков<br>Уровень: ${game.level}`);
         if (!game.leaderboardUpdated) {
           this.updateLeaderboard(game.points);
           game.leaderboardUpdated = true;
         }
+      } else if(game.levelTransitionActive){
+        this.status.html(`Уровень ${game.level} завершён! Переход на следующий уровень...`);
       } else {
         const remaining = (game.timeLimit - (millis() - game.gameStartTime) / 1000).toFixed(1);
-        this.status.html(`Время: ${remaining} сек &nbsp;&nbsp; Очки: ${game.points} &nbsp;&nbsp; Мультипликатор: x${game.multiplier}`);
+        this.status.html(`Время: ${remaining} сек &nbsp;&nbsp; Очки: ${game.points} &nbsp;&nbsp; Мультипликатор: x${game.multiplier}<br>Уровень: ${game.level}`);
       }
     }
     updateLeaderboard(newScore) {
@@ -282,7 +282,7 @@
     }
   }
 
-  // Класс Game – логика игры
+  // Класс Game – логика игры и переход между уровнями
   class Game {
     constructor(width, height, cols = 5, rows = 5) {
       this.width = width;
@@ -292,6 +292,7 @@
       this.cellWidth = this.width / this.cols;
       this.cellHeight = this.height / this.rows;
       this.cells = [];
+      this.decoyCells = [];
       this.gameStarted = false;
       this.gameEnded = false;
       this.paused = false;
@@ -307,8 +308,8 @@
       this.fiboCellsCount = 0;
       this.shakeTime = 0;
       this.leaderboardUpdated = false;
-      this.decoyCells = [];
-      this.bonusAwarded = false; // для начисления бонуса, если все числа Фибоначчи выбраны
+      this.levelTransitionActive = false;  // Флаг для перехода между уровнями
+      this.level = 1;
     }
     init() {
       this.cells = [];
@@ -318,13 +319,17 @@
       this.paused = false;
       this.chain = 0;
       this.multiplier = 1;
-      this.points = 0;
+      this.points = this.points; // сохраняем очки между уровнями
       this.errorCount = 0;
       this.gameStartTime = millis();
       this.leaderboardUpdated = false;
-      this.bonusAwarded = false;
+      this.levelTransitionActive = false;
+      // Определяем количество ячеек, где будут числа Фибоначчи (около 40% от общего количества)
       const totalCells = this.cols * this.rows;
       this.fiboCellsCount = Math.floor(totalCells * 0.4);
+      // Обновляем список чисел Фибоначчи, сумма которых увеличивается с каждым уровнем
+      // Здесь увеличение определяется увеличением максимального числа
+      this.fiboNumbers = generateFibo(this.maxNumber);
       const indices = Array.from({ length: totalCells }, (_, i) => i);
       shuffleArray(indices);
       const fiboIndices = indices.slice(0, this.fiboCellsCount);
@@ -347,7 +352,7 @@
       }
     }
     start() {
-      console.log("Игра запущена");
+      console.log("Игра запущена, уровень " + this.level);
       this.gameStarted = true;
       this.gameStartTime = millis();
     }
@@ -357,20 +362,21 @@
       this.paused ? noLoop() : loop();
     }
     reset() {
+      // При рестарте уровня не сбрасываем уровень и очки
       this.init();
+      this.gameEnded = false;
       this.start();
       loop();
     }
     update() {
-      // Бонус: если все числа Фибоначчи выбраны, начислить +1000 очков (однократно)
-      if (!this.bonusAwarded) {
-        const remainingFibo = this.cells.filter(cell => cell.isFibo && !cell.clicked);
-        if (remainingFibo.length === 0) {
-          console.log("Все числа Фибоначчи выбраны! +1000 очков");
-          this.points += 1000;
-          this.bonusAwarded = true;
-        }
+      // Если все числа Фибоначчи выбраны, завершаем уровень и переходим на следующий
+      const remainingFibo = this.cells.filter(cell => cell.isFibo && !cell.clicked);
+      if (!this.levelTransitionActive && remainingFibo.length === 0) {
+        console.log("Уровень " + this.level + " завершён!");
+        this.levelTransitionActive = true;
+        this.advanceLevel();
       }
+      
       if (this.shakeTime > 0) {
         const shakeMagnitude = 5;
         const dx = random(-shakeMagnitude, shakeMagnitude);
@@ -386,14 +392,36 @@
         decoy.draw();
       }
       const elapsed = (millis() - this.gameStartTime) / 1000;
-      if (this.timeLimit - elapsed <= 0) {
+      if (elapsed >= this.timeLimit) {
+        // Если время вышло, игра заканчивается
         this.gameEnded = true;
       }
+    }
+    advanceLevel() {
+      // Завершаем текущий уровень, сбрасываем таймер
+      console.log("Переход на следующий уровень...");
+      // Можно добавить эффект ожидания или задержку перехода
+      setTimeout(() => {
+        // Увеличиваем уровень
+        this.level++;
+        // Увеличиваем сложность: увеличиваем сетку (количество квадратиков)
+        this.cols += 1;
+        this.rows += 1;
+        this.cellWidth = this.width / this.cols;
+        this.cellHeight = this.height / this.rows;
+        // Увеличиваем максимальное число, чтобы сумма чисел Фибоначчи увеличивалась
+        this.maxNumber += 50;
+        // Сбрасываем флаг перехода уровня и переинициализируем состояние игры
+        this.levelTransitionActive = false;
+        this.init();
+        this.start();
+      }, 1500); // задержка 1.5 секунды для визуального эффекта перехода
     }
     triggerShake() {
       this.shakeTime = 200;
     }
     modifyLayout() {
+      // При ошибках можно также увеличить сетку
       if (this.cols < 8 && this.rows < 8) {
         this.cols += 1;
         this.rows += 1;
@@ -410,7 +438,7 @@
       }
     }
     handleInteraction(x, y) {
-      if (!this.gameStarted || this.gameEnded || this.paused) return;
+      if (!this.gameStarted || this.gameEnded || this.paused || this.levelTransitionActive) return;
       let cellClicked = false;
       for (const cell of this.cells) {
         if (!cell.clicked && cell.contains(x, y)) {
