@@ -138,6 +138,7 @@
         this.clicked = false;
       }
       draw() {
+        // При окончании игры/уровня выделяем незатронутые числа Фибоначчи
         if (game && (game.gameEnded || game.levelTransitionActive) && this.isFibo && !this.clicked) {
           stroke(255, 255, 0);
           strokeWeight(3);
@@ -158,7 +159,8 @@
         text(this.number, this.x + this.w / 2, this.y + this.h / 2);
       }
       contains(mx, my) {
-        return mx >= this.x && mx <= this.x + this.w && my >= this.y && my <= this.y + this.h;
+        return (mx >= this.x && mx <= this.x + this.w &&
+                my >= this.y && my <= this.y + this.h);
       }
     }
 
@@ -250,7 +252,7 @@
           this.status.html("Игра не запущена");
         } else if (game.gameEnded) {
           this.status.html(`Игра окончена!<br>Ваш результат: ${game.points} очков<br>Уровень: ${game.level}`);
-        } else if (game.levelTransitionActive) {
+        } else if(game.levelTransitionActive){
           this.status.html(`Уровень ${game.level} завершён! Переход на следующий уровень...`);
         } else {
           const remaining = (game.timeLimit - (millis() - game.gameStartTime) / 1000).toFixed(1);
@@ -370,7 +372,6 @@
         this.init();
         this.gameEnded = false;
         this.start();
-        // Force canvas resize so the layout remains adapted
         windowResized();
         loop();
       }
@@ -472,9 +473,8 @@
             break;
           }
         }
+        // If no cell was clicked, apply penalty, but do not reset chain/multiplier.
         if (!cellClicked) {
-          this.chain = 0;
-          this.multiplier = 1;
           this.gameStartTime -= 3000;
           this.triggerShake();
         }
