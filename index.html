@@ -308,6 +308,7 @@
       this.shakeTime = 0;
       this.leaderboardUpdated = false;
       this.decoyCells = [];
+      this.bonusAwarded = false; // для начисления бонуса, если все числа Фибоначчи выбраны
     }
     init() {
       this.cells = [];
@@ -321,6 +322,7 @@
       this.errorCount = 0;
       this.gameStartTime = millis();
       this.leaderboardUpdated = false;
+      this.bonusAwarded = false;
       const totalCells = this.cols * this.rows;
       this.fiboCellsCount = Math.floor(totalCells * 0.4);
       const indices = Array.from({ length: totalCells }, (_, i) => i);
@@ -360,6 +362,15 @@
       loop();
     }
     update() {
+      // Бонус: если все числа Фибоначчи выбраны, начислить +1000 очков (однократно)
+      if (!this.bonusAwarded) {
+        const remainingFibo = this.cells.filter(cell => cell.isFibo && !cell.clicked);
+        if (remainingFibo.length === 0) {
+          console.log("Все числа Фибоначчи выбраны! +1000 очков");
+          this.points += 1000;
+          this.bonusAwarded = true;
+        }
+      }
       if (this.shakeTime > 0) {
         const shakeMagnitude = 5;
         const dx = random(-shakeMagnitude, shakeMagnitude);
