@@ -18,31 +18,34 @@
       flex-direction: column;
       align-items: center;
     }
-    /* Контейнер для кнопки старта игры */
-    #startContainer {
+    /* Контейнер для управления игрой (Start, Pause, Restart) */
+    .ui-buttons {
       margin: 20px 0;
-      text-align: center;
-      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      width: 90%;
       max-width: 500px;
     }
-    #startButton {
+    .ui-buttons button {
+      flex: 1 1 30%;
       padding: 10px 20px;
-      font-size: 18px;
+      font-size: 16px;
       cursor: pointer;
       border: none;
       border-radius: 4px;
       background-color: #2575fc;
       color: #fff;
       transition: background-color 0.3s ease;
-      width: 100%;
     }
-    #startButton:hover {
+    .ui-buttons button:hover {
       background-color: #6a11cb;
     }
     #status {
       font-size: 16px;
       text-align: center;
-      width: 100%;
+      width: 90%;
       max-width: 500px;
       margin: 10px auto;
       color: #333;
@@ -60,33 +63,10 @@
       max-width: 500px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
-    .ui-buttons {
-      margin: 10px auto;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 10px;
-      width: 100%;
-      max-width: 500px;
-    }
-    .ui-buttons button {
-      flex: 1 1 45%;
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-      border: none;
-      border-radius: 4px;
-      background-color: #2575fc;
-      color: #fff;
-      transition: background-color 0.3s ease;
-    }
-    .ui-buttons button:hover {
-      background-color: #6a11cb;
-    }
     #leaderboard {
       font-size: 16px;
       text-align: center;
-      width: 100%;
+      width: 90%;
       max-width: 500px;
       margin: 10px auto 20px auto;
       color: #fff;
@@ -99,14 +79,17 @@
       #status { font-size: 14px; }
       .ui-buttons button { font-size: 14px; padding: 8px 16px; }
       #leaderboard { font-size: 14px; }
-      #startButton { font-size: 16px; padding: 8px 16px; }
     }
   </style>
 </head>
 <body>
-<div id="startContainer">
+<div class="ui-buttons">
   <button id="startButton">Начать игру</button>
+  <button id="pauseButton">Пауза</button>
+  <button id="restartButton">Рестарт</button>
 </div>
+<div id="status"></div>
+<div id="leaderboard"></div>
 <script type="module">
   // Генерация последовательности Фибоначчи до max
   const generateFibo = (max) => {
@@ -187,56 +170,79 @@
   class UI {
     constructor(game) {
       this.game = game;
-      // Панель статуса
-      this.status = createDiv("").id("status");
-      // Контейнер для кнопок
-      this.buttonsContainer = createDiv().class("ui-buttons");
+      this.status = select("#status");
+      this.leaderboardDiv = select("#leaderboard");
 
-      // Кнопка "Пауза"
-      this.pauseButton = createButton("Пауза");
-      this.pauseButton.parent(this.buttonsContainer);
+      // Обработка кнопок
+      this.startButton = select("#startButton");
+      this.pauseButton = select("#pauseButton");
+      this.restartButton = select("#restartButton");
+
+      // Обработчик для кнопки "Начать игру"
+      this.startButton.mousePressed(() => {
+        if (!game.gameStarted) {
+          game.start();
+          this.updateButtons();
+        }
+      });
+      this.startButton.elt.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        if (!game.gameStarted) {
+          game.start();
+          this.updateButtons();
+        }
+      });
+
+      // Обработчик для кнопки "Пауза"
       this.pauseButton.mousePressed(() => {
-        game.togglePause();
-        this.updatePauseButtonLabel();
+        if (game.gameStarted) {
+          game.togglePause();
+          this.updateButtons();
+        }
       });
       this.pauseButton.elt.addEventListener('touchend', (e) => {
         e.preventDefault();
-        game.togglePause();
-        this.updatePauseButtonLabel();
+        if (game.gameStarted) {
+          game.togglePause();
+          this.updateButtons();
+        }
       });
 
-      // Кнопка "Рестарт"
-      this.restartButton = createButton("Рестарт");
-      this.restartButton.parent(this.buttonsContainer);
+      // Обработчик для кнопки "Рестарт"
       this.restartButton.mousePressed(() => {
         game.reset();
-        this.updatePauseButtonLabel();
+        this.updateButtons();
       });
       this.restartButton.elt.addEventListener('touchend', (e) => {
         e.preventDefault();
         game.reset();
-        this.updatePauseButtonLabel();
+        this.updateButtons();
       });
 
-      // Доска рекордов
-      this.leaderboardDiv = createDiv("").id("leaderboard");
       this.displayLeaderboard();
     }
-    updatePauseButtonLabel() {
-      this.pauseButton.html(this.game.paused ? "Возобновить" : "Пауза");
+    updateButtons() {
+      // Обновляем метки кнопок в зависимости от состояния игры
+      this.pauseButton.html(game.paused ? "Возобновить" : "Пауза");
+      // Блок кнопки "Начать игру" скрываем, если игра уже запущена
+      if (game.gameStarted) {
+        this.startButton.hide();
+      } else {
+        this.startButton.show();
+      }
     }
     updateStatus() {
-      if (!this.game.gameStarted) {
+      if (!game.gameStarted) {
         this.status.html("Игра не запущена");
-      } else if (this.game.gameEnded) {
-        this.status.html(`Поздравляем!<br>Ваш результат: ${this.game.points} очков`);
-        if (!this.game.leaderboardUpdated) {
-          this.updateLeaderboard(this.game.points);
-          this.game.leaderboardUpdated = true;
+      } else if (game.gameEnded) {
+        this.status.html(`Поздравляем!<br>Ваш результат: ${game.points} очков`);
+        if (!game.leaderboardUpdated) {
+          this.updateLeaderboard(game.points);
+          game.leaderboardUpdated = true;
         }
       } else {
-        const remaining = (this.game.timeLimit - (millis() - this.game.gameStartTime) / 1000).toFixed(1);
-        this.status.html(`Время: ${remaining} сек &nbsp;&nbsp; Очки: ${this.game.points} &nbsp;&nbsp; Мультипликатор: x${this.game.multiplier}`);
+        const remaining = (game.timeLimit - (millis() - game.gameStartTime) / 1000).toFixed(1);
+        this.status.html(`Время: ${remaining} сек &nbsp;&nbsp; Очки: ${game.points} &nbsp;&nbsp; Мультипликатор: x${game.multiplier}`);
       }
     }
     updateLeaderboard(newScore) {
@@ -448,20 +454,6 @@
     const canvasSize = Math.min(windowWidth * 0.95, 500);
     resizeCanvas(canvasSize, canvasSize);
   };
-
-  // Обработка клика по кнопке старта игры
-  const startButton = document.getElementById('startButton');
-  const startContainer = document.getElementById('startContainer');
-  const startGame = () => {
-    console.log("Кнопка старта нажата");
-    startContainer.style.display = 'none';
-    game.start();
-  };
-  startButton.addEventListener('click', startGame);
-  startButton.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    startGame();
-  });
 </script>
 </body>
 </html>
