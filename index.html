@@ -313,7 +313,7 @@
         this.fiboNumbers = generateFibo(this.maxNumber);
         this.fiboCellsCount = 0;
         this.shakeTime = 0;
-        this.leaderboardUpdated = false;
+        this.leaderboardUpdated = false; // Флаг чтобы не обновлять доску рекордов несколько раз
         this.levelTransitionActive = false;  // Флаг для перехода между уровнями
         this.level = 1;
       }
@@ -325,7 +325,6 @@
         this.paused = false;
         this.chain = 0;
         this.multiplier = 1;
-        // При перезапуске игры с первого уровня сбрасываем очки, а при переходе между уровнями сохраняем их.
         if (this.level === 1) {
           this.points = 0;
         }
@@ -333,10 +332,8 @@
         this.gameStartTime = millis();
         this.leaderboardUpdated = false;
         this.levelTransitionActive = false;
-        // Определяем количество ячеек, где будут числа Фибоначчи (около 40% от общего количества)
         const totalCells = this.cols * this.rows;
         this.fiboCellsCount = Math.floor(totalCells * 0.4);
-        // Обновляем список чисел Фибоначчи, сумма которых увеличивается с каждым уровнем
         this.fiboNumbers = generateFibo(this.maxNumber);
         const indices = Array.from({ length: totalCells }, (_, i) => i);
         shuffleArray(indices);
@@ -370,7 +367,6 @@
         this.paused ? noLoop() : loop();
       }
       reset() {
-        // Если время вышло и уровень не пройден, перезапускаем игру с первого уровня
         if (this.gameEnded && this.level > 1) {
           this.level = 1;
           this.cols = 5;
@@ -383,7 +379,6 @@
         loop();
       }
       update() {
-        // Если все числа Фибоначчи выбраны, завершаем уровень и переходим на следующий
         const remainingFibo = this.cells.filter(cell => cell.isFibo && !cell.clicked);
         if (!this.levelTransitionActive && remainingFibo.length === 0) {
           console.log("Уровень " + this.level + " завершён!");
@@ -391,11 +386,15 @@
           this.advanceLevel();
         }
         
-        // Если время вышло и уровень не пройден, игра перезапускается с первого уровня
         const elapsed = (millis() - this.gameStartTime) / 1000;
         if (elapsed >= this.timeLimit) {
           console.log("Время вышло, уровень не пройден. Перезапуск игры с первого уровня.");
           this.gameEnded = true;
+          // Обновляем доску рекордов только один раз
+          if (!this.leaderboardUpdated) {
+            ui.updateLeaderboard(this.points);
+            this.leaderboardUpdated = true;
+          }
           setTimeout(() => {
             this.level = 1;
             this.cols = 5;
