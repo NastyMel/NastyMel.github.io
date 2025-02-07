@@ -18,7 +18,7 @@
       flex-direction: column;
       align-items: center;
     }
-    /* Контейнер для управления игрой (Start, Pause, Restart) */
+    /* Контейнер для кнопок управления игрой */
     .ui-buttons {
       margin: 20px 0;
       display: flex;
@@ -29,7 +29,8 @@
       max-width: 500px;
     }
     .ui-buttons button {
-      flex: 1 1 30%;
+      /* Кнопки будут равной ширины */
+      flex: 1;
       padding: 10px 20px;
       font-size: 16px;
       cursor: pointer;
@@ -85,8 +86,8 @@
 <body>
 <div class="ui-buttons">
   <button id="startButton">Начать игру</button>
-  <button id="pauseButton">Пауза</button>
   <button id="restartButton">Рестарт</button>
+  <button id="pauseButton">Возобновить</button>
 </div>
 <div id="status"></div>
 <div id="leaderboard"></div>
@@ -173,10 +174,10 @@
       this.status = select("#status");
       this.leaderboardDiv = select("#leaderboard");
 
-      // Обработка кнопок
+      // Кнопки управления
       this.startButton = select("#startButton");
-      this.pauseButton = select("#pauseButton");
       this.restartButton = select("#restartButton");
+      this.pauseButton = select("#pauseButton");
 
       // Обработчик для кнопки "Начать игру"
       this.startButton.mousePressed(() => {
@@ -193,7 +194,18 @@
         }
       });
 
-      // Обработчик для кнопки "Пауза"
+      // Обработчик для кнопки "Рестарт"
+      this.restartButton.mousePressed(() => {
+        game.reset();
+        this.updateButtons();
+      });
+      this.restartButton.elt.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        game.reset();
+        this.updateButtons();
+      });
+
+      // Обработчик для кнопки "Возобновить/Пауза"
       this.pauseButton.mousePressed(() => {
         if (game.gameStarted) {
           game.togglePause();
@@ -207,25 +219,13 @@
           this.updateButtons();
         }
       });
-
-      // Обработчик для кнопки "Рестарт"
-      this.restartButton.mousePressed(() => {
-        game.reset();
-        this.updateButtons();
-      });
-      this.restartButton.elt.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        game.reset();
-        this.updateButtons();
-      });
-
+      
       this.displayLeaderboard();
     }
     updateButtons() {
-      // Обновляем метки кнопок в зависимости от состояния игры
       this.pauseButton.html(game.paused ? "Возобновить" : "Пауза");
-      // Блок кнопки "Начать игру" скрываем, если игра уже запущена
       if (game.gameStarted) {
+        // Если игра уже началась, скрываем кнопку "Начать игру"
         this.startButton.hide();
       } else {
         this.startButton.show();
