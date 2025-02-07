@@ -29,7 +29,6 @@
       max-width: 500px;
     }
     .ui-buttons button {
-      /* Кнопки будут равной ширины */
       flex: 1;
       padding: 10px 20px;
       font-size: 16px;
@@ -246,10 +245,6 @@
         this.status.html("Игра не запущена");
       } else if (game.gameEnded) {
         this.status.html(`Игра окончена!<br>Ваш результат: ${game.points} очков<br>Уровень: ${game.level}`);
-        if (!game.leaderboardUpdated) {
-          this.updateLeaderboard(game.points);
-          game.leaderboardUpdated = true;
-        }
       } else if(game.levelTransitionActive){
         this.status.html(`Уровень ${game.level} завершён! Переход на следующий уровень...`);
       } else {
@@ -319,7 +314,8 @@
       this.paused = false;
       this.chain = 0;
       this.multiplier = 1;
-      this.points = this.points; // сохраняем очки между уровнями
+      // Очки сохраняются, если игра продолжается на следующих уровнях,
+      // но при перезапуске игры с первого уровня они будут сброшены.
       this.errorCount = 0;
       this.gameStartTime = millis();
       this.leaderboardUpdated = false;
@@ -328,7 +324,6 @@
       const totalCells = this.cols * this.rows;
       this.fiboCellsCount = Math.floor(totalCells * 0.4);
       // Обновляем список чисел Фибоначчи, сумма которых увеличивается с каждым уровнем
-      // Здесь увеличение определяется увеличением максимального числа
       this.fiboNumbers = generateFibo(this.maxNumber);
       const indices = Array.from({ length: totalCells }, (_, i) => i);
       shuffleArray(indices);
@@ -362,7 +357,17 @@
       this.paused ? noLoop() : loop();
     }
     reset() {
-      // При рестарте уровня не сбрасываем уровень и очки
+      // При рестарте уровня не сбрасываем уровень и очки,
+      // если же игра перезапускается с первого уровня (например, уровень не пройден),
+      // то сбрасываем и уровень, и очки.
+      if (this.gameEnded && this.level > 1) {
+        // Если уровень не пройден, перезапускаем игру с первого уровня
+        this.level = 1;
+        this.cols = 5;
+        this.rows = 5;
+        this.maxNumber = 100;
+        this.points = 0;
+      }
       this.init();
       this.gameEnded = false;
       this.start();
@@ -375,6 +380,21 @@
         console.log("Уровень " + this.level + " завершён!");
         this.levelTransitionActive = true;
         this.advanceLevel();
+      }
+      
+      // Если время вышло, и уровень не пройден, игра перезапускается с первого уровня
+      const elapsed = (millis() - this.gameStartTime) / 1000;
+      if (elapsed >= this.timeLimit) {
+        console.log("Время вышло, уровень не пройден. Перезапуск игры с первого уровня.");
+        this.gameEnded = true;
+        setTimeout(() => {
+          this.level = 1;
+          this.cols = 5;
+          this.rows = 5;
+          this.maxNumber = 100;
+          this.points = 0;
+          this.reset();
+        }, 1500); // задержка для визуального эффекта перезапуска
       }
       
       if (this.shakeTime > 0) {
@@ -391,16 +411,10 @@
         decoy.update();
         decoy.draw();
       }
-      const elapsed = (millis() - this.gameStartTime) / 1000;
-      if (elapsed >= this.timeLimit) {
-        // Если время вышло, игра заканчивается
-        this.gameEnded = true;
-      }
     }
     advanceLevel() {
       // Завершаем текущий уровень, сбрасываем таймер
       console.log("Переход на следующий уровень...");
-      // Можно добавить эффект ожидания или задержку перехода
       setTimeout(() => {
         // Увеличиваем уровень
         this.level++;
