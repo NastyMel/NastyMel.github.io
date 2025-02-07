@@ -90,15 +90,34 @@
       padding: 10px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
+    /* Стиль кнопки старта игры */
+    #startButton {
+      padding: 10px 20px;
+      font-size: 18px;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      background-color: #2575fc;
+      color: #fff;
+      transition: background-color 0.3s ease;
+      margin: 20px;
+    }
+    #startButton:hover {
+      background-color: #6a11cb;
+    }
     @media (max-width: 600px) {
       #header { font-size: 28px; }
       #status { font-size: 14px; }
       .ui-buttons button { font-size: 14px; padding: 8px 16px; }
       #leaderboard { font-size: 14px; }
+      #startButton { font-size: 16px; padding: 8px 16px; }
     }
   </style>
 </head>
 <body>
+<div id="startContainer">
+  <button id="startButton">Начать игру</button>
+</div>
 <script type="module">
   /* ===============================
      Генерация последовательности Фибоначчи до max
@@ -144,7 +163,6 @@
       stroke(200);
       strokeWeight(1);
       if (this.clicked) {
-        // Правильный выбор – зеленый, неверный – красный
         fill(this.isFibo ? '#38ef7d' : '#ff4d4d');
       } else {
         fill(255);
@@ -164,7 +182,6 @@
 
   /* ===============================
      Класс DecoyCell – отвлекающие ячейки
-     Они не являются кликабельными для начисления очков и двигаются случайным образом.
   =============================== */
   class DecoyCell {
     constructor(x, y, w, h) {
@@ -179,7 +196,6 @@
     update() {
       this.x += this.vx;
       this.y += this.vy;
-      // Отскакиваем от границ канвы
       if (this.x < 0 || this.x + this.w > width) this.vx *= -1;
       if (this.y < 0 || this.y + this.h > height) this.vy *= -1;
     }
@@ -191,7 +207,7 @@
   }
 
   /* ===============================
-     Класс UI – управление интерфейсом: заголовок, статус, кнопки, доска рекордов
+     Класс UI – управление интерфейсом
   =============================== */
   class UI {
     constructor(game) {
@@ -212,7 +228,6 @@
         this.updatePauseButtonLabel();
       });
       this.leaderboardDiv = createDiv("").id("leaderboard");
-      // Показываем доску рекордов из localStorage
       this.displayLeaderboard();
     }
     updatePauseButtonLabel() {
@@ -220,7 +235,7 @@
     }
     updateStatus() {
       if (!this.game.gameStarted) {
-        this.status.html("Нажмите пробел для начала или используйте кнопки ниже");
+        this.status.html("Игра не запущена");
       } else if (this.game.gameEnded) {
         this.status.html(`Поздравляем!<br>Ваш результат: ${this.game.points} очков`);
         if (!this.game.leaderboardUpdated) {
@@ -235,7 +250,7 @@
     updateLeaderboard(newScore) {
       let leaderboard = JSON.parse(localStorage.getItem("fiboLeaderboard")) || [];
       leaderboard.push(parseFloat(newScore));
-      leaderboard.sort((a, b) => b - a); // больше очков — лучше
+      leaderboard.sort((a, b) => b - a);
       if (leaderboard.length > 5) leaderboard = leaderboard.slice(0, 5);
       localStorage.setItem("fiboLeaderboard", JSON.stringify(leaderboard));
       this.displayLeaderboard();
@@ -258,7 +273,7 @@
   }
 
   /* ===============================
-     Класс Game – логика игры, штрафы и изменение раскладки
+     Класс Game – логика игры
   =============================== */
   class Game {
     constructor(width, height, cols = 5, rows = 5) {
@@ -272,24 +287,18 @@
       this.gameStarted = false;
       this.gameEnded = false;
       this.paused = false;
-      // Ограничение по времени (в секундах)
       this.timeLimit = 60;
       this.gameStartTime = 0;
-      // Для начисления очков и мультипликатора
       this.chain = 0;
       this.multiplier = 1;
       this.points = 0;
-      // Счёт ошибок; после threshold ошибок меняем раскладку
       this.errorCount = 0;
       this.errorThreshold = 3;
-      // Фибоначчи и поле
       this.maxNumber = 100;
       this.fiboNumbers = generateFibo(this.maxNumber);
       this.fiboCellsCount = 0;
       this.shakeTime = 0;
-      // Для доски рекордов, чтобы обновлять только один раз
       this.leaderboardUpdated = false;
-      // Отвлекающие ячейки (decoy)
       this.decoyCells = [];
     }
     init() {
@@ -334,11 +343,7 @@
     togglePause() {
       if (!this.gameStarted) return;
       this.paused = !this.paused;
-      if (this.paused) {
-        noLoop();
-      } else {
-        loop();
-      }
+      this.paused ? noLoop() : loop();
     }
     reset() {
       this.init();
@@ -346,7 +351,6 @@
       loop();
     }
     update() {
-      // Эффект «тряски» экрана при ошибке
       if (this.shakeTime > 0) {
         const shakeMagnitude = 5;
         const dx = random(-shakeMagnitude, shakeMagnitude);
@@ -354,34 +358,28 @@
         translate(dx, dy);
         this.shakeTime -= deltaTime;
       }
-      // Отрисовка всех клеток
       for (const cell of this.cells) {
         cell.draw();
       }
-      // Обновление и отрисовка отвлекающих ячеек, если они есть
       for (const decoy of this.decoyCells) {
         decoy.update();
         decoy.draw();
       }
-      // Если время вышло, завершаем игру
       const elapsed = (millis() - this.gameStartTime) / 1000;
       if (this.timeLimit - elapsed <= 0) {
         this.gameEnded = true;
       }
     }
     triggerShake() {
-      this.shakeTime = 200; // эффект 200 мс
+      this.shakeTime = 200;
     }
-    // Изменение раскладки поля и добавление отвлекающих ячеек
     modifyLayout() {
-      // Увеличиваем поле (например, добавляем один столбец и одну строку), но не бесконечно
       if (this.cols < 8 && this.rows < 8) {
         this.cols += 1;
         this.rows += 1;
         this.cellWidth = this.width / this.cols;
         this.cellHeight = this.height / this.rows;
       }
-      // Добавляем несколько отвлекающих ячеек (decoy)
       const numDecoys = 3;
       for (let i = 0; i < numDecoys; i++) {
         const w = this.cellWidth * 0.8;
@@ -399,46 +397,35 @@
           cell.clicked = true;
           cellClicked = true;
           if (cell.isFibo) {
-            // Правильный ответ: увеличиваем цепочку и начисляем очки с учетом мультипликатора
             this.chain++;
-            this.multiplier = 1 + this.chain * 0.5; // например, каждый правильный ответ добавляет 0.5 к мультипликатору
+            this.multiplier = 1 + this.chain * 0.5;
             this.points += Math.floor(10 * this.multiplier);
           } else {
-            // Неверный ответ: сброс цепочки, штрафное время и увеличение счётчика ошибок
             this.chain = 0;
             this.multiplier = 1;
             this.errorCount++;
-            // Штрафное время: отнимаем 5 секунд
             this.gameStartTime -= 5000;
             this.triggerShake();
-            // Если ошибок достаточно, изменяем раскладку поля и добавляем отвлекающие ячейки
             if (this.errorCount >= this.errorThreshold) {
               this.modifyLayout();
-              // Сбрасываем счетчик ошибок, чтобы не менять раскладку каждый раз
               this.errorCount = 0;
             }
           }
           break;
         }
       }
-      // Если клик не попал ни по одной клетке, можно добавить дополнительный эффект или штраф
       if (!cellClicked) {
-        // Например, сброс цепочки и штрафное время
         this.chain = 0;
         this.multiplier = 1;
-        this.gameStartTime -= 3000; // штраф в 3 секунды
+        this.gameStartTime -= 3000;
         this.triggerShake();
       }
     }
   }
 
-  /* ===============================
-     Инициализация: создание канвы, экземпляров Game и UI
-  =============================== */
   let game, ui;
   window.setup = () => {
-    // Адаптивный размер канвы: максимум 500px, 95% от ширины экрана
-    let canvasSize = min(windowWidth * 0.95, 500);
+    let canvasSize = Math.min(windowWidth * 0.95, 500);
     const cnv = createCanvas(canvasSize, canvasSize);
     cnv.parent(document.body);
     game = new Game(canvasSize, canvasSize, 5, 5);
@@ -454,9 +441,6 @@
     ui.draw();
   };
 
-  /* ===============================
-     Обработка кликов и касаний
-  =============================== */
   window.mousePressed = () => {
     game.handleInteraction(mouseX, mouseY);
   };
@@ -469,18 +453,18 @@
     return false;
   };
 
-  /* Старт игры по нажатию пробела, если она ещё не началась */
-  window.keyPressed = () => {
-    if (!game.gameStarted && key === ' ') {
-      game.start();
-    }
-  };
-
-  /* Обновление канвы при изменении размера окна */
   window.windowResized = () => {
-    let canvasSize = min(windowWidth * 0.95, 500);
+    let canvasSize = Math.min(windowWidth * 0.95, 500);
     resizeCanvas(canvasSize, canvasSize);
   };
+
+  // Обработка клика по кнопке для старта игры
+  const startButton = document.getElementById('startButton');
+  startButton.addEventListener('click', () => {
+    // Скрываем контейнер с кнопкой после старта игры
+    document.getElementById('startContainer').style.display = 'none';
+    game.start();
+  });
 </script>
 </body>
 </html>
