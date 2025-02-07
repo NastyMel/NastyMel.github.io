@@ -127,10 +127,22 @@
       this.clicked = false;
     }
     draw() {
-      stroke(200);
-      strokeWeight(1);
-      fill(this.clicked ? (this.isFibo ? '#38ef7d' : '#ff4d4d') : 255);
+      // Если игра окончена, подсвечиваем оставшиеся невыбранные числа Фибоначчи
+      if (game && game.gameEnded && this.isFibo && !this.clicked) {
+        stroke(255, 255, 0); // желтая рамка
+        strokeWeight(3);
+      } else {
+        stroke(200);
+        strokeWeight(1);
+      }
+      // Определяем заливку в зависимости от состояния ячейки
+      if (this.clicked) {
+        fill(this.isFibo ? '#38ef7d' : '#ff4d4d');
+      } else {
+        fill(255);
+      }
       rect(this.x, this.y, this.w, this.h, 5);
+      
       fill(50);
       noStroke();
       textAlign(CENTER, CENTER);
