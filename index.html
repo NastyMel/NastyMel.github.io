@@ -2,12 +2,11 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Найди числа Фибоначчи!</title>
+  <title>Игра Фибоначчи</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- Подключаем p5.js и p5.dom -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/addons/p5.dom.min.js"></script>
-  <!-- Подключаем шрифт Roboto -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap">
   <style>
     body {
@@ -16,19 +15,6 @@
       background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
       font-family: 'Roboto', sans-serif;
       position: relative;
-    }
-    #header {
-      font-size: 32px;
-      font-weight: 700;
-      text-align: center;
-      width: 100%;
-      max-width: 500px;
-      margin: 20px auto 10px auto;
-      padding: 10px;
-      color: #fff;
-      background: linear-gradient(45deg, #6a11cb, #2575fc);
-      border-radius: 8px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
     #status {
       font-size: 16px;
@@ -106,7 +92,6 @@
       background-color: #6a11cb;
     }
     @media (max-width: 600px) {
-      #header { font-size: 28px; }
       #status { font-size: 14px; }
       .ui-buttons button { font-size: 14px; padding: 8px 16px; }
       #leaderboard { font-size: 14px; }
@@ -119,6 +104,7 @@
   <button id="startButton">Начать игру</button>
 </div>
 <script type="module">
+  // Генерация последовательности Фибоначчи до max
   const generateFibo = (max) => {
     const fibo = [1];
     let a = 1, b = 1;
@@ -133,6 +119,7 @@
     return fibo;
   };
 
+  // Перемешивание массива (алгоритм Фишера–Йетса)
   const shuffleArray = (array) => {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(random(i + 1));
@@ -140,6 +127,7 @@
     }
   };
 
+  // Класс Cell – ячейка игрового поля
   class Cell {
     constructor(x, y, w, h, number, isFibo) {
       this.x = x;
@@ -167,6 +155,7 @@
     }
   }
 
+  // Класс DecoyCell – отвлекающие ячейки
   class DecoyCell {
     constructor(x, y, w, h) {
       this.x = x;
@@ -190,24 +179,46 @@
     }
   }
 
+  // Класс UI – управление интерфейсом
   class UI {
     constructor(game) {
       this.game = game;
-      this.header = createDiv("Найди числа Фибоначчи!").id("header");
+      // Панель статуса
       this.status = createDiv("").id("status");
+
+      // Контейнер кнопок
       this.buttonsContainer = createDiv().class("ui-buttons");
+
+      // Кнопка "Пауза"
       this.pauseButton = createButton("Пауза");
       this.pauseButton.parent(this.buttonsContainer);
+      // Клик мыши
       this.pauseButton.mousePressed(() => {
         game.togglePause();
         this.updatePauseButtonLabel();
       });
+      // Событие для мобильных устройств
+      this.pauseButton.elt.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        game.togglePause();
+        this.updatePauseButtonLabel();
+      });
+
+      // Кнопка "Рестарт"
       this.restartButton = createButton("Рестарт");
       this.restartButton.parent(this.buttonsContainer);
+      // Клик мыши
       this.restartButton.mousePressed(() => {
         game.reset();
         this.updatePauseButtonLabel();
       });
+      // Событие для мобильных устройств
+      this.restartButton.elt.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        game.reset();
+        this.updatePauseButtonLabel();
+      });
+
       this.leaderboardDiv = createDiv("").id("leaderboard");
       this.displayLeaderboard();
     }
@@ -253,6 +264,7 @@
     }
   }
 
+  // Класс Game – логика игры
   class Game {
     constructor(width, height, cols = 5, rows = 5) {
       this.width = width;
@@ -437,15 +449,14 @@
     resizeCanvas(canvasSize, canvasSize);
   };
 
-  // Обработка клика по кнопке для старта игры
+  // Обработка клика по кнопке старта игры
   const startButton = document.getElementById('startButton');
   const startContainer = document.getElementById('startContainer');
   const startGame = () => {
-    console.log("Нажата кнопка запуска");
+    console.log("Кнопка старта нажата");
     startContainer.style.display = 'none';
     game.start();
   };
-
   startButton.addEventListener('click', startGame);
   startButton.addEventListener('touchend', (e) => {
     e.preventDefault();
