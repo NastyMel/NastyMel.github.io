@@ -144,7 +144,8 @@
       fill(50);
       noStroke();
       textAlign(CENTER, CENTER);
-      textSize(20);
+      // Адаптивный размер шрифта, зависящий от размера ячейки
+      textSize(Math.min(this.w, this.h) * 0.4);
       text(this.number, this.x + this.w / 2, this.y + this.h / 2);
     }
     contains(mx, my) {
@@ -314,8 +315,10 @@
       this.paused = false;
       this.chain = 0;
       this.multiplier = 1;
-      // Очки сохраняются, если игра продолжается на следующих уровнях,
-      // но при перезапуске игры с первого уровня они будут сброшены.
+      // При перезапуске игры с первого уровня сбрасываем очки, а при переходе между уровнями сохраняем их.
+      if (this.level === 1) {
+        this.points = 0;
+      }
       this.errorCount = 0;
       this.gameStartTime = millis();
       this.leaderboardUpdated = false;
@@ -357,16 +360,12 @@
       this.paused ? noLoop() : loop();
     }
     reset() {
-      // При рестарте уровня не сбрасываем уровень и очки,
-      // если же игра перезапускается с первого уровня (например, уровень не пройден),
-      // то сбрасываем и уровень, и очки.
+      // Если время вышло и уровень не пройден, перезапускаем игру с первого уровня
       if (this.gameEnded && this.level > 1) {
-        // Если уровень не пройден, перезапускаем игру с первого уровня
         this.level = 1;
         this.cols = 5;
         this.rows = 5;
         this.maxNumber = 100;
-        this.points = 0;
       }
       this.init();
       this.gameEnded = false;
@@ -382,7 +381,7 @@
         this.advanceLevel();
       }
       
-      // Если время вышло, и уровень не пройден, игра перезапускается с первого уровня
+      // Если время вышло и уровень не пройден, игра перезапускается с первого уровня
       const elapsed = (millis() - this.gameStartTime) / 1000;
       if (elapsed >= this.timeLimit) {
         console.log("Время вышло, уровень не пройден. Перезапуск игры с первого уровня.");
@@ -392,9 +391,8 @@
           this.cols = 5;
           this.rows = 5;
           this.maxNumber = 100;
-          this.points = 0;
           this.reset();
-        }, 1500); // задержка для визуального эффекта перезапуска
+        }, 1500);
       }
       
       if (this.shakeTime > 0) {
@@ -413,29 +411,23 @@
       }
     }
     advanceLevel() {
-      // Завершаем текущий уровень, сбрасываем таймер
       console.log("Переход на следующий уровень...");
       setTimeout(() => {
-        // Увеличиваем уровень
         this.level++;
-        // Увеличиваем сложность: увеличиваем сетку (количество квадратиков)
         this.cols += 1;
         this.rows += 1;
         this.cellWidth = this.width / this.cols;
         this.cellHeight = this.height / this.rows;
-        // Увеличиваем максимальное число, чтобы сумма чисел Фибоначчи увеличивалась
         this.maxNumber += 50;
-        // Сбрасываем флаг перехода уровня и переинициализируем состояние игры
         this.levelTransitionActive = false;
         this.init();
         this.start();
-      }, 1500); // задержка 1.5 секунды для визуального эффекта перехода
+      }, 1500);
     }
     triggerShake() {
       this.shakeTime = 200;
     }
     modifyLayout() {
-      // При ошибках можно также увеличить сетку
       if (this.cols < 8 && this.rows < 8) {
         this.cols += 1;
         this.rows += 1;
