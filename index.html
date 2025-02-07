@@ -20,15 +20,21 @@
     }
     /* Контейнер для кнопок управления игрой */
     .ui-buttons {
-      margin: 20px 0;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
       gap: 10px;
       width: 90%;
       max-width: 500px;
+      margin-bottom: 20px;
     }
-    .ui-buttons button {
+    .button-row {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+    }
+    .button-row button {
       flex: 1;
       padding: 10px 20px;
       font-size: 16px;
@@ -39,7 +45,7 @@
       color: #fff;
       transition: background-color 0.3s ease;
     }
-    .ui-buttons button:hover {
+    .button-row button:hover {
       background-color: #6a11cb;
     }
     #status {
@@ -77,440 +83,444 @@
     }
     @media (max-width: 600px) {
       #status { font-size: 14px; }
-      .ui-buttons button { font-size: 14px; padding: 8px 16px; }
+      .button-row button { font-size: 14px; padding: 8px 16px; }
       #leaderboard { font-size: 14px; }
     }
   </style>
 </head>
 <body>
-<div class="ui-buttons">
-  <button id="startButton">Начать игру</button>
-  <button id="restartButton">Рестарт</button>
-  <button id="pauseButton">Возобновить</button>
-</div>
-<div id="status"></div>
-<div id="leaderboard"></div>
-<script type="module">
-  // Генерация последовательности Фибоначчи до max
-  const generateFibo = (max) => {
-    const fibo = [1];
-    let a = 1, b = 1;
-    while (b <= max) {
-      if (!fibo.includes(b)) {
-        fibo.push(b);
-      }
-      const next = a + b;
-      a = b;
-      b = next;
-    }
-    return fibo;
-  };
-
-  // Перемешивание массива (алгоритм Фишера–Йетса)
-  const shuffleArray = (array) => {
-    for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(random(i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
-    }
-  };
-
-  // Класс Cell – ячейка игрового поля
-  class Cell {
-    constructor(x, y, w, h, number, isFibo) {
-      this.x = x;
-      this.y = y;
-      this.w = w;
-      this.h = h;
-      this.number = number;
-      this.isFibo = isFibo;
-      this.clicked = false;
-    }
-    draw() {
-      // Если игра закончена (или уровень завершён), подсвечиваем оставшиеся невыбранные числа Фибоначчи
-      if (game && (game.gameEnded || game.levelTransitionActive) && this.isFibo && !this.clicked) {
-        stroke(255, 255, 0); // желтая рамка
-        strokeWeight(3);
-      } else {
-        stroke(200);
-        strokeWeight(1);
-      }
-      // Определяем заливку в зависимости от состояния ячейки
-      if (this.clicked) {
-        fill(this.isFibo ? '#38ef7d' : '#ff4d4d');
-      } else {
-        fill(255);
-      }
-      rect(this.x, this.y, this.w, this.h, 5);
-      fill(50);
-      noStroke();
-      textAlign(CENTER, CENTER);
-      // Адаптивный размер шрифта, зависящий от размера ячейки
-      textSize(Math.min(this.w, this.h) * 0.4);
-      text(this.number, this.x + this.w / 2, this.y + this.h / 2);
-    }
-    contains(mx, my) {
-      return (mx >= this.x && mx <= this.x + this.w &&
-              my >= this.y && my <= this.y + this.h);
-    }
-  }
-
-  // Класс DecoyCell – отвлекающие ячейки
-  class DecoyCell {
-    constructor(x, y, w, h) {
-      this.x = x;
-      this.y = y;
-      this.w = w;
-      this.h = h;
-      this.baseColor = color(220, 220, 255, 150);
-      this.vx = random(-1, 1);
-      this.vy = random(-1, 1);
-    }
-    update() {
-      this.x += this.vx;
-      this.y += this.vy;
-      if (this.x < 0 || this.x + this.w > width) this.vx *= -1;
-      if (this.y < 0 || this.y + this.h > height) this.vy *= -1;
-    }
-    draw() {
-      noStroke();
-      fill(this.baseColor);
-      rect(this.x, this.y, this.w, this.h, 5);
-    }
-  }
-
-  // Класс UI – управление игровым интерфейсом
-  class UI {
-    constructor(game) {
-      this.game = game;
-      this.status = select("#status");
-      this.leaderboardDiv = select("#leaderboard");
-
-      // Кнопки управления
-      this.startButton = select("#startButton");
-      this.restartButton = select("#restartButton");
-      this.pauseButton = select("#pauseButton");
-
-      // Обработчик для кнопки "Начать игру"
-      this.startButton.mousePressed(() => {
-        if (!game.gameStarted) {
-          game.start();
-          this.updateButtons();
+  <!-- Размещение кнопки "Начать игру" в отдельном ряду -->
+  <div class="ui-buttons">
+    <div class="button-row">
+      <button id="startButton">Начать игру</button>
+    </div>
+    <!-- Ряд с кнопками "Рестарт" и "Пауза" -->
+    <div class="button-row">
+      <button id="restartButton">Рестарт</button>
+      <button id="pauseButton">Возобновить</button>
+    </div>
+  </div>
+  <div id="status"></div>
+  <div id="leaderboard"></div>
+  <script type="module">
+    // Генерация последовательности Фибоначчи до max
+    const generateFibo = (max) => {
+      const fibo = [1];
+      let a = 1, b = 1;
+      while (b <= max) {
+        if (!fibo.includes(b)) {
+          fibo.push(b);
         }
-      });
-      this.startButton.elt.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        if (!game.gameStarted) {
-          game.start();
-          this.updateButtons();
-        }
-      });
+        const next = a + b;
+        a = b;
+        b = next;
+      }
+      return fibo;
+    };
 
-      // Обработчик для кнопки "Рестарт"
-      this.restartButton.mousePressed(() => {
-        game.reset();
-        this.updateButtons();
-      });
-      this.restartButton.elt.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        game.reset();
-        this.updateButtons();
-      });
+    // Перемешивание массива (алгоритм Фишера–Йетса)
+    const shuffleArray = (array) => {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(random(i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    };
 
-      // Обработчик для кнопки "Возобновить/Пауза"
-      this.pauseButton.mousePressed(() => {
-        if (game.gameStarted) {
-          game.togglePause();
-          this.updateButtons();
+    // Класс Cell – ячейка игрового поля
+    class Cell {
+      constructor(x, y, w, h, number, isFibo) {
+        this.x = x;
+        this.y = y;
+        this.w = w;
+        this.h = h;
+        this.number = number;
+        this.isFibo = isFibo;
+        this.clicked = false;
+      }
+      draw() {
+        // Если игра закончена (или уровень завершён), подсвечиваем оставшиеся невыбранные числа Фибоначчи
+        if (game && (game.gameEnded || game.levelTransitionActive) && this.isFibo && !this.clicked) {
+          stroke(255, 255, 0); // желтая рамка
+          strokeWeight(3);
+        } else {
+          stroke(200);
+          strokeWeight(1);
         }
-      });
-      this.pauseButton.elt.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        if (game.gameStarted) {
-          game.togglePause();
-          this.updateButtons();
+        if (this.clicked) {
+          fill(this.isFibo ? '#38ef7d' : '#ff4d4d');
+        } else {
+          fill(255);
         }
-      });
-      
-      this.displayLeaderboard();
-    }
-    updateButtons() {
-      this.pauseButton.html(game.paused ? "Возобновить" : "Пауза");
-      if (game.gameStarted) {
-        this.startButton.hide();
-      } else {
-        this.startButton.show();
+        rect(this.x, this.y, this.w, this.h, 5);
+        fill(50);
+        noStroke();
+        textAlign(CENTER, CENTER);
+        textSize(Math.min(this.w, this.h) * 0.4); // Адаптивный размер шрифта
+        text(this.number, this.x + this.w / 2, this.y + this.h / 2);
+      }
+      contains(mx, my) {
+        return (mx >= this.x && mx <= this.x + this.w &&
+                my >= this.y && my <= this.y + this.h);
       }
     }
-    updateStatus() {
-      if (!game.gameStarted) {
-        this.status.html("Игра не запущена");
-      } else if (game.gameEnded) {
-        this.status.html(`Игра окончена!<br>Ваш результат: ${game.points} очков<br>Уровень: ${game.level}`);
-      } else if(game.levelTransitionActive){
-        this.status.html(`Уровень ${game.level} завершён! Переход на следующий уровень...`);
-      } else {
-        const remaining = (game.timeLimit - (millis() - game.gameStartTime) / 1000).toFixed(1);
-        this.status.html(`Время: ${remaining} сек &nbsp;&nbsp; Очки: ${game.points} &nbsp;&nbsp; Мультипликатор: x${game.multiplier}<br>Уровень: ${game.level}`);
-      }
-    }
-    updateLeaderboard(newScore) {
-      let leaderboard = JSON.parse(localStorage.getItem("fiboLeaderboard")) || [];
-      leaderboard.push(parseFloat(newScore));
-      leaderboard.sort((a, b) => b - a);
-      if (leaderboard.length > 5) leaderboard = leaderboard.slice(0, 5);
-      localStorage.setItem("fiboLeaderboard", JSON.stringify(leaderboard));
-      this.displayLeaderboard();
-    }
-    displayLeaderboard() {
-      let leaderboard = JSON.parse(localStorage.getItem("fiboLeaderboard")) || [];
-      if (leaderboard.length === 0) {
-        this.leaderboardDiv.html("Доска рекордов пуста");
-      } else {
-        let html = "<strong>Доска рекордов (очки):</strong><br>";
-        leaderboard.forEach((score, index) => {
-          html += `${index + 1}. ${score}<br>`;
-        });
-        this.leaderboardDiv.html(html);
-      }
-    }
-    draw() {
-      this.updateStatus();
-    }
-  }
 
-  // Класс Game – логика игры и переход между уровнями
-  class Game {
-    constructor(width, height, cols = 5, rows = 5) {
-      this.width = width;
-      this.height = height;
-      this.cols = cols;
-      this.rows = rows;
-      this.cellWidth = this.width / this.cols;
-      this.cellHeight = this.height / this.rows;
-      this.cells = [];
-      this.decoyCells = [];
-      this.gameStarted = false;
-      this.gameEnded = false;
-      this.paused = false;
-      this.timeLimit = 60;
-      this.gameStartTime = 0;
-      this.chain = 0;
-      this.multiplier = 1;
-      this.points = 0;
-      this.errorCount = 0;
-      this.errorThreshold = 3;
-      this.maxNumber = 100;
-      this.fiboNumbers = generateFibo(this.maxNumber);
-      this.fiboCellsCount = 0;
-      this.shakeTime = 0;
-      this.leaderboardUpdated = false;
-      this.levelTransitionActive = false;  // Флаг для перехода между уровнями
-      this.level = 1;
-    }
-    init() {
-      this.cells = [];
-      this.decoyCells = [];
-      this.gameStarted = false;
-      this.gameEnded = false;
-      this.paused = false;
-      this.chain = 0;
-      this.multiplier = 1;
-      // При перезапуске игры с первого уровня сбрасываем очки, а при переходе между уровнями сохраняем их.
-      if (this.level === 1) {
-        this.points = 0;
+    // Класс DecoyCell – отвлекающие ячейки
+    class DecoyCell {
+      constructor(x, y, w, h) {
+        this.x = x;
+        this.y = y;
+        this.w = w;
+        this.h = h;
+        this.baseColor = color(220, 220, 255, 150);
+        this.vx = random(-1, 1);
+        this.vy = random(-1, 1);
       }
-      this.errorCount = 0;
-      this.gameStartTime = millis();
-      this.leaderboardUpdated = false;
-      this.levelTransitionActive = false;
-      // Определяем количество ячеек, где будут числа Фибоначчи (около 40% от общего количества)
-      const totalCells = this.cols * this.rows;
-      this.fiboCellsCount = Math.floor(totalCells * 0.4);
-      // Обновляем список чисел Фибоначчи, сумма которых увеличивается с каждым уровнем
-      this.fiboNumbers = generateFibo(this.maxNumber);
-      const indices = Array.from({ length: totalCells }, (_, i) => i);
-      shuffleArray(indices);
-      const fiboIndices = indices.slice(0, this.fiboCellsCount);
-      for (let r = 0; r < this.rows; r++) {
-        for (let c = 0; c < this.cols; c++) {
-          const idx = r * this.cols + c;
-          const x = c * this.cellWidth;
-          const y = r * this.cellHeight;
-          const isFiboCell = fiboIndices.includes(idx);
-          let number;
-          if (isFiboCell) {
-            number = random(this.fiboNumbers);
-          } else {
-            do {
-              number = Math.floor(random(1, this.maxNumber + 1));
-            } while (this.fiboNumbers.includes(number));
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        if (this.x < 0 || this.x + this.w > width) this.vx *= -1;
+        if (this.y < 0 || this.y + this.h > height) this.vy *= -1;
+      }
+      draw() {
+        noStroke();
+        fill(this.baseColor);
+        rect(this.x, this.y, this.w, this.h, 5);
+      }
+    }
+
+    // Класс UI – управление игровым интерфейсом
+    class UI {
+      constructor(game) {
+        this.game = game;
+        this.status = select("#status");
+        this.leaderboardDiv = select("#leaderboard");
+
+        // Кнопки управления
+        this.startButton = select("#startButton");
+        this.restartButton = select("#restartButton");
+        this.pauseButton = select("#pauseButton");
+
+        // Обработчик для кнопки "Начать игру"
+        this.startButton.mousePressed(() => {
+          if (!game.gameStarted) {
+            game.start();
+            this.updateButtons();
           }
-          this.cells.push(new Cell(x, y, this.cellWidth, this.cellHeight, number, isFiboCell));
+        });
+        this.startButton.elt.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          if (!game.gameStarted) {
+            game.start();
+            this.updateButtons();
+          }
+        });
+
+        // Обработчик для кнопки "Рестарт"
+        this.restartButton.mousePressed(() => {
+          game.reset();
+          this.updateButtons();
+        });
+        this.restartButton.elt.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          game.reset();
+          this.updateButtons();
+        });
+
+        // Обработчик для кнопки "Возобновить/Пауза"
+        this.pauseButton.mousePressed(() => {
+          if (game.gameStarted) {
+            game.togglePause();
+            this.updateButtons();
+          }
+        });
+        this.pauseButton.elt.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          if (game.gameStarted) {
+            game.togglePause();
+            this.updateButtons();
+          }
+        });
+        
+        this.displayLeaderboard();
+      }
+      updateButtons() {
+        this.pauseButton.html(game.paused ? "Возобновить" : "Пауза");
+        if (game.gameStarted) {
+          this.startButton.hide();
+        } else {
+          this.startButton.show();
         }
       }
+      updateStatus() {
+        if (!game.gameStarted) {
+          this.status.html("Игра не запущена");
+        } else if (game.gameEnded) {
+          this.status.html(`Игра окончена!<br>Ваш результат: ${game.points} очков<br>Уровень: ${game.level}`);
+        } else if(game.levelTransitionActive){
+          this.status.html(`Уровень ${game.level} завершён! Переход на следующий уровень...`);
+        } else {
+          const remaining = (game.timeLimit - (millis() - game.gameStartTime) / 1000).toFixed(1);
+          this.status.html(`Время: ${remaining} сек &nbsp;&nbsp; Очки: ${game.points} &nbsp;&nbsp; Мультипликатор: x${game.multiplier}<br>Уровень: ${game.level}`);
+        }
+      }
+      updateLeaderboard(newScore) {
+        let leaderboard = JSON.parse(localStorage.getItem("fiboLeaderboard")) || [];
+        leaderboard.push(parseFloat(newScore));
+        leaderboard.sort((a, b) => b - a);
+        if (leaderboard.length > 5) leaderboard = leaderboard.slice(0, 5);
+        localStorage.setItem("fiboLeaderboard", JSON.stringify(leaderboard));
+        this.displayLeaderboard();
+      }
+      displayLeaderboard() {
+        let leaderboard = JSON.parse(localStorage.getItem("fiboLeaderboard")) || [];
+        if (leaderboard.length === 0) {
+          this.leaderboardDiv.html("Доска рекордов пуста");
+        } else {
+          let html = "<strong>Доска рекордов (очки):</strong><br>";
+          leaderboard.forEach((score, index) => {
+            html += `${index + 1}. ${score}<br>`;
+          });
+          this.leaderboardDiv.html(html);
+        }
+      }
+      draw() {
+        this.updateStatus();
+      }
     }
-    start() {
-      console.log("Игра запущена, уровень " + this.level);
-      this.gameStarted = true;
-      this.gameStartTime = millis();
-    }
-    togglePause() {
-      if (!this.gameStarted) return;
-      this.paused = !this.paused;
-      this.paused ? noLoop() : loop();
-    }
-    reset() {
-      // Если время вышло и уровень не пройден, перезапускаем игру с первого уровня
-      if (this.gameEnded && this.level > 1) {
-        this.level = 1;
-        this.cols = 5;
-        this.rows = 5;
+
+    // Класс Game – логика игры и переход между уровнями
+    class Game {
+      constructor(width, height, cols = 5, rows = 5) {
+        this.width = width;
+        this.height = height;
+        this.cols = cols;
+        this.rows = rows;
+        this.cellWidth = this.width / this.cols;
+        this.cellHeight = this.height / this.rows;
+        this.cells = [];
+        this.decoyCells = [];
+        this.gameStarted = false;
+        this.gameEnded = false;
+        this.paused = false;
+        this.timeLimit = 60;
+        this.gameStartTime = 0;
+        this.chain = 0;
+        this.multiplier = 1;
+        this.points = 0;
+        this.errorCount = 0;
+        this.errorThreshold = 3;
         this.maxNumber = 100;
+        this.fiboNumbers = generateFibo(this.maxNumber);
+        this.fiboCellsCount = 0;
+        this.shakeTime = 0;
+        this.leaderboardUpdated = false;
+        this.levelTransitionActive = false;  // Флаг для перехода между уровнями
+        this.level = 1;
       }
-      this.init();
-      this.gameEnded = false;
-      this.start();
-      loop();
-    }
-    update() {
-      // Если все числа Фибоначчи выбраны, завершаем уровень и переходим на следующий
-      const remainingFibo = this.cells.filter(cell => cell.isFibo && !cell.clicked);
-      if (!this.levelTransitionActive && remainingFibo.length === 0) {
-        console.log("Уровень " + this.level + " завершён!");
-        this.levelTransitionActive = true;
-        this.advanceLevel();
+      init() {
+        this.cells = [];
+        this.decoyCells = [];
+        this.gameStarted = false;
+        this.gameEnded = false;
+        this.paused = false;
+        this.chain = 0;
+        this.multiplier = 1;
+        // При перезапуске игры с первого уровня сбрасываем очки, а при переходе между уровнями сохраняем их.
+        if (this.level === 1) {
+          this.points = 0;
+        }
+        this.errorCount = 0;
+        this.gameStartTime = millis();
+        this.leaderboardUpdated = false;
+        this.levelTransitionActive = false;
+        // Определяем количество ячеек, где будут числа Фибоначчи (около 40% от общего количества)
+        const totalCells = this.cols * this.rows;
+        this.fiboCellsCount = Math.floor(totalCells * 0.4);
+        // Обновляем список чисел Фибоначчи, сумма которых увеличивается с каждым уровнем
+        this.fiboNumbers = generateFibo(this.maxNumber);
+        const indices = Array.from({ length: totalCells }, (_, i) => i);
+        shuffleArray(indices);
+        const fiboIndices = indices.slice(0, this.fiboCellsCount);
+        for (let r = 0; r < this.rows; r++) {
+          for (let c = 0; c < this.cols; c++) {
+            const idx = r * this.cols + c;
+            const x = c * this.cellWidth;
+            const y = r * this.cellHeight;
+            const isFiboCell = fiboIndices.includes(idx);
+            let number;
+            if (isFiboCell) {
+              number = random(this.fiboNumbers);
+            } else {
+              do {
+                number = Math.floor(random(1, this.maxNumber + 1));
+              } while (this.fiboNumbers.includes(number));
+            }
+            this.cells.push(new Cell(x, y, this.cellWidth, this.cellHeight, number, isFiboCell));
+          }
+        }
       }
-      
-      // Если время вышло и уровень не пройден, игра перезапускается с первого уровня
-      const elapsed = (millis() - this.gameStartTime) / 1000;
-      if (elapsed >= this.timeLimit) {
-        console.log("Время вышло, уровень не пройден. Перезапуск игры с первого уровня.");
-        this.gameEnded = true;
-        setTimeout(() => {
+      start() {
+        console.log("Игра запущена, уровень " + this.level);
+        this.gameStarted = true;
+        this.gameStartTime = millis();
+      }
+      togglePause() {
+        if (!this.gameStarted) return;
+        this.paused = !this.paused;
+        this.paused ? noLoop() : loop();
+      }
+      reset() {
+        // Если время вышло и уровень не пройден, перезапускаем игру с первого уровня
+        if (this.gameEnded && this.level > 1) {
           this.level = 1;
           this.cols = 5;
           this.rows = 5;
           this.maxNumber = 100;
-          this.reset();
-        }, 1500);
-      }
-      
-      if (this.shakeTime > 0) {
-        const shakeMagnitude = 5;
-        const dx = random(-shakeMagnitude, shakeMagnitude);
-        const dy = random(-shakeMagnitude, shakeMagnitude);
-        translate(dx, dy);
-        this.shakeTime -= deltaTime;
-      }
-      for (const cell of this.cells) {
-        cell.draw();
-      }
-      for (const decoy of this.decoyCells) {
-        decoy.update();
-        decoy.draw();
-      }
-    }
-    advanceLevel() {
-      console.log("Переход на следующий уровень...");
-      setTimeout(() => {
-        this.level++;
-        this.cols += 1;
-        this.rows += 1;
-        this.cellWidth = this.width / this.cols;
-        this.cellHeight = this.height / this.rows;
-        this.maxNumber += 50;
-        this.levelTransitionActive = false;
+        }
         this.init();
+        this.gameEnded = false;
         this.start();
-      }, 1500);
-    }
-    triggerShake() {
-      this.shakeTime = 200;
-    }
-    modifyLayout() {
-      if (this.cols < 8 && this.rows < 8) {
-        this.cols += 1;
-        this.rows += 1;
-        this.cellWidth = this.width / this.cols;
-        this.cellHeight = this.height / this.rows;
+        loop();
       }
-      const numDecoys = 3;
-      for (let i = 0; i < numDecoys; i++) {
-        const w = this.cellWidth * 0.8;
-        const h = this.cellHeight * 0.8;
-        const x = random(0, this.width - w);
-        const y = random(0, this.height - h);
-        this.decoyCells.push(new DecoyCell(x, y, w, h));
-      }
-    }
-    handleInteraction(x, y) {
-      if (!this.gameStarted || this.gameEnded || this.paused || this.levelTransitionActive) return;
-      let cellClicked = false;
-      for (const cell of this.cells) {
-        if (!cell.clicked && cell.contains(x, y)) {
-          cell.clicked = true;
-          cellClicked = true;
-          if (cell.isFibo) {
-            this.chain++;
-            this.multiplier = 1 + this.chain * 0.5;
-            this.points += Math.floor(10 * this.multiplier);
-          } else {
-            this.chain = 0;
-            this.multiplier = 1;
-            this.errorCount++;
-            this.gameStartTime -= 5000;
-            this.triggerShake();
-            if (this.errorCount >= this.errorThreshold) {
-              this.modifyLayout();
-              this.errorCount = 0;
-            }
-          }
-          break;
+      update() {
+        // Если все числа Фибоначчи выбраны, завершаем уровень и переходим на следующий
+        const remainingFibo = this.cells.filter(cell => cell.isFibo && !cell.clicked);
+        if (!this.levelTransitionActive && remainingFibo.length === 0) {
+          console.log("Уровень " + this.level + " завершён!");
+          this.levelTransitionActive = true;
+          this.advanceLevel();
+        }
+        
+        // Если время вышло и уровень не пройден, игра перезапускается с первого уровня
+        const elapsed = (millis() - this.gameStartTime) / 1000;
+        if (elapsed >= this.timeLimit) {
+          console.log("Время вышло, уровень не пройден. Перезапуск игры с первого уровня.");
+          this.gameEnded = true;
+          setTimeout(() => {
+            this.level = 1;
+            this.cols = 5;
+            this.rows = 5;
+            this.maxNumber = 100;
+            this.reset();
+          }, 1500);
+        }
+        
+        if (this.shakeTime > 0) {
+          const shakeMagnitude = 5;
+          const dx = random(-shakeMagnitude, shakeMagnitude);
+          const dy = random(-shakeMagnitude, shakeMagnitude);
+          translate(dx, dy);
+          this.shakeTime -= deltaTime;
+        }
+        for (const cell of this.cells) {
+          cell.draw();
+        }
+        for (const decoy of this.decoyCells) {
+          decoy.update();
+          decoy.draw();
         }
       }
-      if (!cellClicked) {
-        this.chain = 0;
-        this.multiplier = 1;
-        this.gameStartTime -= 3000;
-        this.triggerShake();
+      advanceLevel() {
+        console.log("Переход на следующий уровень...");
+        setTimeout(() => {
+          this.level++;
+          this.cols += 1;
+          this.rows += 1;
+          this.cellWidth = this.width / this.cols;
+          this.cellHeight = this.height / this.rows;
+          this.maxNumber += 50;
+          this.levelTransitionActive = false;
+          this.init();
+          this.start();
+        }, 1500);
+      }
+      triggerShake() {
+        this.shakeTime = 200;
+      }
+      modifyLayout() {
+        if (this.cols < 8 && this.rows < 8) {
+          this.cols += 1;
+          this.rows += 1;
+          this.cellWidth = this.width / this.cols;
+          this.cellHeight = this.height / this.rows;
+        }
+        const numDecoys = 3;
+        for (let i = 0; i < numDecoys; i++) {
+          const w = this.cellWidth * 0.8;
+          const h = this.cellHeight * 0.8;
+          const x = random(0, this.width - w);
+          const y = random(0, this.height - h);
+          this.decoyCells.push(new DecoyCell(x, y, w, h));
+        }
+      }
+      handleInteraction(x, y) {
+        if (!this.gameStarted || this.gameEnded || this.paused || this.levelTransitionActive) return;
+        let cellClicked = false;
+        for (const cell of this.cells) {
+          if (!cell.clicked && cell.contains(x, y)) {
+            cell.clicked = true;
+            cellClicked = true;
+            if (cell.isFibo) {
+              this.chain++;
+              this.multiplier = 1 + this.chain * 0.5;
+              this.points += Math.floor(10 * this.multiplier);
+            } else {
+              this.chain = 0;
+              this.multiplier = 1;
+              this.errorCount++;
+              this.gameStartTime -= 5000;
+              this.triggerShake();
+              if (this.errorCount >= this.errorThreshold) {
+                this.modifyLayout();
+                this.errorCount = 0;
+              }
+            }
+            break;
+          }
+        }
+        if (!cellClicked) {
+          this.chain = 0;
+          this.multiplier = 1;
+          this.gameStartTime -= 3000;
+          this.triggerShake();
+        }
       }
     }
-  }
 
-  let game, ui;
-  window.setup = () => {
-    const canvasSize = Math.min(windowWidth * 0.95, 500);
-    const cnv = createCanvas(canvasSize, canvasSize);
-    cnv.parent(document.body);
-    game = new Game(canvasSize, canvasSize, 5, 5);
-    game.init();
-    ui = new UI(game);
-  };
+    let game, ui;
+    window.setup = () => {
+      const canvasSize = Math.min(windowWidth * 0.95, 500);
+      const cnv = createCanvas(canvasSize, canvasSize);
+      cnv.parent(document.body);
+      game = new Game(canvasSize, canvasSize, 5, 5);
+      game.init();
+      ui = new UI(game);
+    };
 
-  window.draw = () => {
-    background(245, 247, 250);
-    push();
-      game.update();
-    pop();
-    ui.draw();
-  };
+    window.draw = () => {
+      background(245, 247, 250);
+      push();
+        game.update();
+      pop();
+      ui.draw();
+    };
 
-  window.mousePressed = () => {
-    game.handleInteraction(mouseX, mouseY);
-  };
+    window.mousePressed = () => {
+      game.handleInteraction(mouseX, mouseY);
+    };
 
-  window.touchStarted = () => {
-    if (touches.length > 0) {
-      const touchPoint = touches[0];
-      game.handleInteraction(touchPoint.x, touchPoint.y);
-    }
-    return false;
-  };
+    window.touchStarted = () => {
+      if (touches.length > 0) {
+        const touchPoint = touches[0];
+        game.handleInteraction(touchPoint.x, touchPoint.y);
+      }
+      return false;
+    };
 
-  window.windowResized = () => {
-    const canvasSize = Math.min(windowWidth * 0.95, 500);
-    resizeCanvas(canvasSize, canvasSize);
-  };
-</script>
+    window.windowResized = () => {
+      const canvasSize = Math.min(windowWidth * 0.95, 500);
+      resizeCanvas(canvasSize, canvasSize);
+    };
+  </script>
 </body>
 </html>
