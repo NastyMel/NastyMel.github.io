@@ -69,7 +69,7 @@
       padding: 10px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
-    /* Стиль контейнера и кнопки старта игры */
+    /* Стиль контейнера для кнопки старта игры */
     #startContainer {
       position: absolute;
       top: 10px;
@@ -179,25 +179,22 @@
     }
   }
 
-  // Класс UI – управление интерфейсом
+  // Класс UI – управление игровым интерфейсом
   class UI {
     constructor(game) {
       this.game = game;
       // Панель статуса
       this.status = createDiv("").id("status");
-
-      // Контейнер кнопок
+      // Контейнер для кнопок
       this.buttonsContainer = createDiv().class("ui-buttons");
 
       // Кнопка "Пауза"
       this.pauseButton = createButton("Пауза");
       this.pauseButton.parent(this.buttonsContainer);
-      // Клик мыши
       this.pauseButton.mousePressed(() => {
         game.togglePause();
         this.updatePauseButtonLabel();
       });
-      // Событие для мобильных устройств
       this.pauseButton.elt.addEventListener('touchend', (e) => {
         e.preventDefault();
         game.togglePause();
@@ -207,18 +204,17 @@
       // Кнопка "Рестарт"
       this.restartButton = createButton("Рестарт");
       this.restartButton.parent(this.buttonsContainer);
-      // Клик мыши
       this.restartButton.mousePressed(() => {
         game.reset();
         this.updatePauseButtonLabel();
       });
-      // Событие для мобильных устройств
       this.restartButton.elt.addEventListener('touchend', (e) => {
         e.preventDefault();
         game.reset();
         this.updatePauseButtonLabel();
       });
 
+      // Доска рекордов
       this.leaderboardDiv = createDiv("").id("leaderboard");
       this.displayLeaderboard();
     }
