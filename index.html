@@ -138,9 +138,8 @@
         this.clicked = false;
       }
       draw() {
-        // Если игра закончена (или уровень завершён), подсвечиваем оставшиеся невыбранные числа Фибоначчи
         if (game && (game.gameEnded || game.levelTransitionActive) && this.isFibo && !this.clicked) {
-          stroke(255, 255, 0); // желтая рамка
+          stroke(255, 255, 0);
           strokeWeight(3);
         } else {
           stroke(200);
@@ -155,12 +154,11 @@
         fill(50);
         noStroke();
         textAlign(CENTER, CENTER);
-        textSize(Math.min(this.w, this.h) * 0.4); // Адаптивный размер шрифта
+        textSize(Math.min(this.w, this.h) * 0.4);
         text(this.number, this.x + this.w / 2, this.y + this.h / 2);
       }
       contains(mx, my) {
-        return (mx >= this.x && mx <= this.x + this.w &&
-                my >= this.y && my <= this.y + this.h);
+        return mx >= this.x && mx <= this.x + this.w && my >= this.y && my <= this.y + this.h;
       }
     }
 
@@ -195,12 +193,10 @@
         this.status = select("#status");
         this.leaderboardDiv = select("#leaderboard");
 
-        // Кнопки управления
         this.startButton = select("#startButton");
         this.restartButton = select("#restartButton");
         this.pauseButton = select("#pauseButton");
 
-        // Обработчик для кнопки "Начать игру"
         this.startButton.mousePressed(() => {
           if (!game.gameStarted) {
             game.start();
@@ -215,7 +211,6 @@
           }
         });
 
-        // Обработчик для кнопки "Рестарт"
         this.restartButton.mousePressed(() => {
           game.reset();
           this.updateButtons();
@@ -226,7 +221,6 @@
           this.updateButtons();
         });
 
-        // Обработчик для кнопки "Возобновить/Пауза"
         this.pauseButton.mousePressed(() => {
           if (game.gameStarted) {
             game.togglePause();
@@ -256,7 +250,7 @@
           this.status.html("Игра не запущена");
         } else if (game.gameEnded) {
           this.status.html(`Игра окончена!<br>Ваш результат: ${game.points} очков<br>Уровень: ${game.level}`);
-        } else if(game.levelTransitionActive){
+        } else if (game.levelTransitionActive) {
           this.status.html(`Уровень ${game.level} завершён! Переход на следующий уровень...`);
         } else {
           const remaining = (game.timeLimit - (millis() - game.gameStartTime) / 1000).toFixed(1);
@@ -313,8 +307,8 @@
         this.fiboNumbers = generateFibo(this.maxNumber);
         this.fiboCellsCount = 0;
         this.shakeTime = 0;
-        this.leaderboardUpdated = false; // Флаг чтобы не обновлять доску рекордов несколько раз
-        this.levelTransitionActive = false;  // Флаг для перехода между уровнями
+        this.leaderboardUpdated = false;
+        this.levelTransitionActive = false;
         this.level = 1;
       }
       init() {
@@ -376,6 +370,8 @@
         this.init();
         this.gameEnded = false;
         this.start();
+        // Force canvas resize so the layout remains adapted
+        windowResized();
         loop();
       }
       update() {
@@ -390,7 +386,6 @@
         if (elapsed >= this.timeLimit) {
           console.log("Время вышло, уровень не пройден. Перезапуск игры с первого уровня.");
           this.gameEnded = true;
-          // Обновляем доску рекордов только один раз
           if (!this.leaderboardUpdated) {
             ui.updateLeaderboard(this.points);
             this.leaderboardUpdated = true;
