@@ -90,7 +90,16 @@
       padding: 10px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
-    /* Стиль кнопки старта игры */
+    /* Стиль контейнера и кнопки старта игры */
+    #startContainer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 10;
+      width: 100%;
+      text-align: center;
+      margin-top: 20px;
+    }
     #startButton {
       padding: 10px 20px;
       font-size: 18px;
@@ -100,7 +109,6 @@
       background-color: #2575fc;
       color: #fff;
       transition: background-color 0.3s ease;
-      margin: 20px;
     }
     #startButton:hover {
       background-color: #6a11cb;
@@ -458,12 +466,19 @@
     resizeCanvas(canvasSize, canvasSize);
   };
 
-  // Обработка клика по кнопке для старта игры
+  // Обработка клика по кнопке для старта игры с поддержкой touchend
   const startButton = document.getElementById('startButton');
-  startButton.addEventListener('click', () => {
-    // Скрываем контейнер с кнопкой после старта игры
-    document.getElementById('startContainer').style.display = 'none';
+  const startContainer = document.getElementById('startContainer');
+  const startGame = () => {
+    // Для проверки можно временно добавить alert("Кнопка нажата");
+    startContainer.style.display = 'none';
     game.start();
+  };
+
+  startButton.addEventListener('click', startGame);
+  startButton.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    startGame();
   });
 </script>
 </body>
